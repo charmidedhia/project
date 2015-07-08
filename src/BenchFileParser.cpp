@@ -138,3 +138,39 @@ void parseGate(string strInput, map<string, int> &extern_to_line, int &num_lines
     delete inputs;
     delete gate_name;
 }
+void parseDFF(string strInput, map<string, int> &extern_to_line, int &num_lines, vector<Line> &lines, vector<int> &input_lines, vector<int> &output_lines){
+    size_t equals_index = strInput.find("=");
+
+    char *left_name = new char[equals_index+1];
+    strInput.copy(left_name, equals_index, 0);
+    left_name[equals_index] = '\0';
+    string trimmed_left = trim(left_name);
+
+    size_t left_bracket = strInput.find_first_of("(");
+    size_t right_bracket = strInput.find_first_of(")");
+    size_t inputs_len = right_bracket - left_bracket - 1;
+    char *inputs = new char[inputs_len+1];
+    strInput.copy(inputs, inputs_len, left_bracket+1);
+    inputs[inputs_len] = '\0';
+    int line_num = -1;
+    if (extern_to_line.find(trimmed_left) == extern_to_line.end()) {
+        line_num = num_lines++;
+        extern_to_line[trimmed_left] = line_num;
+        lines.push_back(Line(line_num, trimmed_left, true, false));//left is output of dff , so input of circuit
+    } else {
+        line_num = extern_to_line[trimmed_left];
+        lines[line_num].is_input = true;
+    }
+    input_lines.push_back(line_num);
+    line_num=-1;
+    if (extern_to_line.find(inputs) == extern_to_line.end()) {
+        line_num = num_lines++;
+        extern_to_line[inputs] = line_num;
+        lines.push_back(Line(line_num, inputs, false, true));//left is output of dff , so input of circuit
+    } else {
+        line_num = extern_to_line[inputs];
+        lines[line_num].is_output = true;
+    }
+    output_lines.push_back(line_num);
+    
+}

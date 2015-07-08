@@ -37,6 +37,8 @@ Circuit::Circuit(char *benchFile) {
 			parseIOLine(strInput, 5, true, extern_to_line, num_lines, lines, input_lines, output_lines);
 		} else if (strInput.find("OUTPUT") == firstNonWhitespace) {
 			parseIOLine(strInput, 6, false, extern_to_line, num_lines, lines, input_lines, output_lines);
+		} else if (strInput.find("DFF") != string::npos) {
+			parseDFF(strInput, extern_to_line, num_lines, lines, input_lines, output_lines);
 		} else if (strInput.find("=") != string::npos) {
 			parseGate(strInput, extern_to_line, num_lines, lines, num_gates, gates);
 		}
