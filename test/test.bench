@@ -1,0 +1,9 @@
+INPUT(1)
+INPUT(2)
+INPUT(3)
+
+OUTPUT(6)
+
+4 = AND(1, 2)
+5 = AND(2, 3)
+6 = AND(4, 5)
