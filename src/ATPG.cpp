@@ -26,7 +26,7 @@ ATPG::ATPG(char *benchname, bool incr, bool symm) {
 
     g_circuit = new Circuit(benchname);
 
-    g_circuit->getFaultList(g_faultlines);
+    g_circuit->getRTOPFaultList(g_faultlines);
 
     g_cnfformula = new CNF(0);
     g_satsolver = new SATSolver(g_cnfformula);

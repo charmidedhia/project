@@ -16,6 +16,7 @@
 #include <string>
 #include <stdlib.h>
 #include <algorithm>
+#include <queue> 
 
 using namespace std;
 
@@ -76,6 +77,37 @@ void Circuit::getFaultList(vector<string> &faults) {
 			faults.push_back(lines[i].extern_name);
 		}
 	}
+}
+
+void Circuit::getRTOPFaultList(vector<string> &faults){
+	cout<<"RTOP";
+	vector<bool> inList;
+	for(int i=0;i<lines.size();i++){
+		inList.push_back(false);
+	}
+	queue<int> q;
+	for(int i=0;i<output_lines.size();i++){
+		q.push(output_lines[i]);
+		inList[output_lines[i]]=true;
+	}
+	while(!q.empty()){
+		int it=q.front();
+		q.pop();
+		Line curr(lines[it]);
+		if(!curr.is_input && !curr.is_output) faults.push_back(curr.extern_name);
+		
+		if(!curr.is_input){
+			Gate g = gates[curr.from_gate];
+			for(int i=0;i<g.input_lines.size();i++){
+				int j=getLineID(g.input_lines[i]);
+				if(!inList[j]){
+					q.push(j);
+					inList[j]=true;
+				}
+			}
+		}
+	}
+	cout<<"faultlist.size "<<faults.size()<<endl;
 }
 
 void Circuit::getInputLines(set<string> &inlines) {
