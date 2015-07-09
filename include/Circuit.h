@@ -115,6 +115,7 @@ public:
 
 	void getFaultList(vector<string> &faults);
     void getRTOPFaultList(vector<string> &faults);
+    void getRandomFaultList(vector<string> &faults) ;
 
 	int getNumLines() { return num_lines; }
         int getNumGates() { return num_gates; }

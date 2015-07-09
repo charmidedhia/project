@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <queue> 
+#include <cstdlib>    
 
 using namespace std;
 
@@ -108,6 +109,15 @@ void Circuit::getRTOPFaultList(vector<string> &faults){
 		}
 	}
 	cout<<"faultlist.size "<<faults.size()<<endl;
+}
+
+void Circuit::getRandomFaultList(vector<string> &faults) {
+	for (int i = 0; i < lines.size(); i++) {
+		if (!lines[i].is_input && !lines[i].is_output) {
+			faults.push_back(lines[i].extern_name);
+		}
+	}
+	random_shuffle ( faults.begin(), faults.end() );
 }
 
 void Circuit::getInputLines(set<string> &inlines) {
