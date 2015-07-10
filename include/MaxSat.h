@@ -22,7 +22,7 @@ public:
     ~MaxSATSolver();
 
     /* Solve maxSAT and return a model. */
-    bool solve(vector<int> &model, set<int> &softclauses);
+    bool solve(vector<int> &model, set<int> &softclauses,int maxhs_time_limit);
 };
 
 #endif

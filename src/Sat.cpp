@@ -63,7 +63,7 @@ void SATSolver::setPrefixVars(vector<int> &prefix) {
 
 bool SATSolver::solve(vector<int> &model, int budget) {
 
-    cout << "SATSolver::solve enter" << endl;
+    // cout << "SATSolver::solve enter" << endl;
     
     double starttime = cpuTime();
  
@@ -82,13 +82,13 @@ bool SATSolver::solve(vector<int> &model, int budget) {
         cout << "SAT Solver timed out, considering it to be UNSAT" << endl;
     }  
     
-    cout << "SAT time: " << cpuTime() - starttime << endl;
+    // cout << "SAT time: " << cpuTime() - starttime << endl;
     // will consider timeouts as UNSAT
     return (satres == l_True);
 }
 bool SATSolver::solve(vector<int> &model) {
 
-    cout << "SATSolver::solve enter" << endl;
+    // cout << "SATSolver::solve enter" << endl;
     
     double starttime = cpuTime();
   
@@ -105,14 +105,14 @@ bool SATSolver::solve(vector<int> &model) {
         }
     } 
 
-    cout << "SAT time: " << cpuTime() - starttime << endl;
+    // cout << "SAT time: " << cpuTime() - starttime << endl;
 
     return satres;
 }
 
 bool SATSolver::solveWithAssumptions(vector<int> &assumps) {
 
-    cout << "SATSolver::solveWithAssumptions enter" << endl;
+    // cout << "SATSolver::solveWithAssumptions enter" << endl;
 
     vec<Lit> massumps;
     for (int i = 0; i < assumps.size(); i++) {
@@ -126,13 +126,13 @@ bool SATSolver::solveWithAssumptions(vector<int> &assumps) {
     double starttime = cpuTime();
 
     bool satres = minisat->solve(massumps);
-    cout << "SAT time: " << cpuTime() - starttime << endl;
+    // cout << "SAT time: " << cpuTime() - starttime << endl;
     return satres;
 }
 
 bool SATSolver::solveWithAssumptions(vector<int> &assumps, vector<int> &model) {
 
-    cout << "SATSolver::solveWithAssumptions and return model enter" << endl;
+    // cout << "SATSolver::solveWithAssumptions and return model enter" << endl;
 
     vec<Lit> massumps;
     for (int i = 0; i < assumps.size(); i++) {
@@ -146,7 +146,7 @@ bool SATSolver::solveWithAssumptions(vector<int> &assumps, vector<int> &model) {
     double starttime = cpuTime();
 
     bool satres = minisat->solve(massumps);
-    cout << "SAT time: " << cpuTime() - starttime << endl;
+    // cout << "SAT time: " << cpuTime() - starttime << endl;
 
     if (satres) {
         for (int i = 0; i < cnf->num_vars; i++) {

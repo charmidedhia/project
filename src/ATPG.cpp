@@ -17,6 +17,9 @@
 #include <stdlib.h>
 #include <ctime>
 
+int k=50;  // size of subset
+int maxhs_time_limit =100; //time limit for each maxhs call
+
 ATPG::ATPG(char *benchname, bool incr, bool symm) {
 
     g_incremental = incr;
@@ -852,13 +855,49 @@ bool ATPG::isFaultTestable(Fault &f) {
 }
 
 
-void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
-    int iternum = 1;
+void ATPG::getReducedFaults(vector<Fault> &allfaults){
+    for(int i=0; i<g_faultlines.size(); i++){
+        if((g_faultlines[i].find("dummy")) == string::npos ){//not input to any gate
+            Fault f0(g_faultlines[i], 0);
+            if (isFaultTestable(f0)) {
+                allfaults.push_back(f0);
+            }
+            Fault f1(g_faultlines[i], 1);
+            if (isFaultTestable(f1)) {
+                allfaults.push_back(f1);
+            }
+        }
+        else{//find what gate it is input to
+            if(g_circuit->getGate(g_circuit->getLine(g_circuit->getLineID(g_faultlines[i])).to_gates[0]).type == Gate::AND){//and
+                Fault f(g_faultlines[i],1);
+                if (isFaultTestable(f)) {
+                    allfaults.push_back(f);
+                }
+            }
+            else if(g_circuit->getGate(g_circuit->getLine(g_circuit->getLineID(g_faultlines[i])).to_gates[0]).type == Gate::OR){
+                Fault f(g_faultlines[i],0);
+                if (isFaultTestable(f)) {
+                    allfaults.push_back(f);
+                }
+            }
+            else if(g_circuit->getGate(g_circuit->getLine(g_circuit->getLineID(g_faultlines[i])).to_gates[0]).type == Gate::NAND){
+                Fault f(g_faultlines[i],1);
+                if (isFaultTestable(f)) {
+                    allfaults.push_back(f);
+                }
+            }
+            else if(g_circuit->getGate(g_circuit->getLine(g_circuit->getLineID(g_faultlines[i])).to_gates[0]).type == Gate::NOR){
+                Fault f(g_faultlines[i],0);
+                if (isFaultTestable(f)) {
+                    allfaults.push_back(f);
+                }
+            }
+                
+        }
+    }
+}
 
-    time_t t1,t2;
-    vector<Fault> allfaults;
-    list<Fault> curfaults;
-
+void ATPG::getAllFaults(vector<Fault> &allfaults){
     for (int i = 0; i < g_faultlines.size(); i++) {
       Fault f0(g_faultlines[i], 0);
       if (isFaultTestable(f0)) {
@@ -869,6 +908,19 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
           allfaults.push_back(f1);
       }
     }
+}
+
+
+void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
+    int iternum = 1;
+    double total_maxsat_time=0;
+
+    time_t t1,t2;
+    vector<Fault> allfaults;
+    list<Fault> curfaults;
+    list<Fault> subset;
+
+    getReducedFaults(allfaults);
    
     cout << "Number of testable faults: " << allfaults.size() << endl; 
     fflush(stdout);
@@ -885,19 +937,29 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
     // g_cnfformula->outputToFileMaxsat("whatever", g_soft_clid, externLineToCnfVar, "test_maxsat.cnf");
 
     while (curfaults.size() > 0) {
-      cout << "iteration " << iternum++ << ", remaning faults=" << curfaults.size() 
-	   << ", test patterns=" << patterns.size() << endl;
+        cout<<"\nsubset size: "<<k<<endl;
+        subset.clear();
+        cout << "iteration " << iternum++ << ", remaning faults=" << curfaults.size() << ", test patterns=" << patterns.size() << endl;
+       
+        if (curfaults.size()>k){//charmi
+            list<Fault>::iterator it=curfaults.begin();
+            for(int i=0;i<k;i++){
+                subset.push_back(*it);
+                it++;
+            }
+        }
+        else subset=curfaults;      
 
       vector<int> patternvars;
       CNF *cnf = new CNF(0);
       set<int> softclauses;
-      buildMaxSatCnf(curfaults, cnf, softclauses, patternvars);
+      buildMaxSatCnf(subset, cnf, softclauses, patternvars);
 
       vector<int> model;
       MaxSATSolver *maxsatsolver = new MaxSATSolver(cnf, solver_name);      
 
       time(&t1);
-      maxsatsolver->solve(model, softclauses);
+      maxsatsolver->solve(model, softclauses, maxhs_time_limit);
       time(&t2);
 
       cout << "Solving time=" << difftime(t2,t1) << "s" << endl;
@@ -909,19 +971,47 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
       vector<flt_it> tested_faults;
 
       // find and remove tested faults
-      for (flt_it it=curfaults.begin(); it!=curfaults.end(); it++){
-	if (isFaultTested(*it, patterns)){
-	  tested_faults.push_back(it);
-	}
-      }
+        for (flt_it it=curfaults.begin(); it!=curfaults.end(); it++){
+	       if (isFaultTested(*it, patterns)){
+	          tested_faults.push_back(it);
+	       }
+        }
 	
       cout << "Tested faults: ";
       for (vector<flt_it>::iterator it=tested_faults.begin(); it!=tested_faults.end(); it++){
-	curfaults.erase(*it);
-	cout << (*it)->line << ", ";
+	   curfaults.erase(*it);
+	   cout << (*it)->line << ", ";
       }
       cout << endl;
       
     }
+}
+
+bool ATPG::checkTestSet(vector<vector<int> > patterns){
+    list<Fault> allfaults;
+    
+    for (int i = 0; i < g_faultlines.size(); i++) {
+        Fault f0(g_faultlines[i], 0);
+        if (isFaultTestable(f0)) {
+            allfaults.push_back(f0);
+        }
+        Fault f1(g_faultlines[i], 1);
+        if (isFaultTestable(f1)) {
+            allfaults.push_back(f1);
+        }
+    }
+    cout<<allfaults.size()<<endl;
+    
+    int count=0;
+    for (flt_it it=allfaults.begin(); it!=allfaults.end(); it++){
+        
+        if (isFaultTested(*it, patterns)){
+            count++;
+            cout<<count<<endl;
+            // tested_faults.push_back(it);
+        }
+        else return false;
+    }
+    return true;
 }
 

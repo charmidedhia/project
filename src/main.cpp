@@ -27,31 +27,42 @@
 #include <stdlib.h>
 #include <vector>
 #include <map>
+#include <fstream>
 
 using namespace std;
 
 void generateCircuits(char *benchname, ATPG& atpg);
+void parseTestSet(char *testpatternfile, vector<vector <int> > &patterns);
+
 
 int main(int argc, char *argv[]) {
 
     if (argc < 3) {
-        cout << "Usage: panda [-i] [-s] [-f] <.bench file> <max sat solver>// -i for incremental SAT solving, -s for symmetry breaking predicates, -f for generating CNF instances for the good and faulty circuits" << endl;
+        cout << "Usage: panda [-i] [-s] [-f] [-c <filename>] <.bench file> <max sat solver>// -i for incremental SAT solving, -s for symmetry breaking predicates, -f for generating CNF instances for the good and faulty circuits, -c <filename> for checking if patterns in <filename> check all the faults" << endl;
         exit(1);
     }
 
     bool incremental = false; 
     bool symm = false;
     bool gen_circuits = false;
+    bool check =false;
+    char *testpatternfile = argv[argc-3];
+    //-c to check if given patterns cover all faults
+    if(strcmp(argv[1], "-c") == 0){
+        check=true;
+    }
+    else{//while checking we wont have -i, -s,-f
 
-    for (int i=1; i<argc-2; i++){
-      if (strcmp(argv[i], "-i") == 0)
-	  incremental = true;
+        for (int i=1; i<argc-2; i++){
+          if (strcmp(argv[i], "-i") == 0)
+    	  incremental = true;
 
-      if (strcmp(argv[i], "-s") == 0)
-	  symm = true;
+          if (strcmp(argv[i], "-s") == 0)
+    	  symm = true;
 
-      if (strcmp(argv[i], "-f") == 0)
-	  gen_circuits = true;
+          if (strcmp(argv[i], "-f") == 0)
+    	  gen_circuits = true;
+        }
     }
 
     char *benchname = argv[argc-2];
@@ -59,24 +70,42 @@ int main(int argc, char *argv[]) {
     ATPG atpg(benchname, true, false);
 
     // will output to test_maxsat.cnf
-    vector<vector<int> > patterns;
-    atpg.getGreedyTestSet(patterns, solver_name);
+if (check){//if we want to check that all faluts are being tested
+        ///////////////////////////////complete this
+        vector<vector <int> > patterns;
+        //read patterns from file and store them to patterns here
+        parseTestSet(testpatternfile, patterns);
+        cout << endl << "Num patterns = " << patterns.size() << endl;
+        for (int i = 0; i < patterns.size(); i++) {
+            cout << "Pattern " << i << ": ";
+            for (int j = 0; j < patterns[i].size(); j++) {
+                cout << patterns[i][j] << " ";
+            }    
+            cout << endl;
+        }
+       if(atpg.checkTestSet(patterns))cout<<"Yes\n";
+        else cout<<"no\n";
+    } else{
 
-    if (gen_circuits) 
-      generateCircuits(benchname, atpg);
+        vector<vector<int> > patterns;
+        atpg.getGreedyTestSet(patterns, solver_name);
 
-#if 0
-    ATPG atpg(benchname, incremental, symm);
-    atpg.getMinTestSet(patterns);
-#endif
-    cout << endl << "Num patterns = " << patterns.size() << endl;
-    for (int i = 0; i < patterns.size(); i++) {
-        cout << "Pattern " << i << ": ";
-        for (int j = 0; j < patterns[i].size(); j++) {
-            cout << patterns[i][j] << " ";
-        }    
-        cout << endl;
+        if (gen_circuits) 
+          generateCircuits(benchname, atpg);
+
+    #if 0
+        ATPG atpg(benchname, incremental, symm);
+        atpg.getMinTestSet(patterns);
+    #endif
+        cout << endl << "Num patterns = " << patterns.size() << endl;
+        for (int i = 0; i < patterns.size(); i++) {
+            cout << "Pattern " << i << ": ";
+            for (int j = 0; j < patterns[i].size(); j++) {
+                cout << patterns[i][j] << " ";
+            }    
+            cout << endl;
     }
+}
 
 #if 0 
     Circuit circuit_good(benchname);
@@ -180,7 +209,23 @@ void generateCircuits(char *benchname, ATPG& atpg){
   }
 }
 
+void parseTestSet(char *testpatternfile, vector<vector <int> > &patterns){
+    ifstream inf(testpatternfile);
+    
+    string strInput;
 
+    while( getline(inf, strInput)){
+        // getline(inf,strInput);
+        // cout<<strInput<<endl;
+        size_t colon = strInput.find_first_of(':');
+        vector<int> pattern;
+        for(int i=colon+2;i<strInput.size();i=i+2){
+            if(strInput[i]=='1'){pattern.push_back(1);}
+            else if(strInput[i]=='0') pattern.push_back(0);
+        }
+        patterns.push_back(pattern);
+    }
+}
 
 
 

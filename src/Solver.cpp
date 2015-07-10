@@ -793,10 +793,10 @@ lbool Solver::solve_()
     lbool   status            = l_Undef;
 
     if (verbosity >= 1){
-        printf("============================[ Search Statistics ]==============================\n");
-        printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
-        printf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
-        printf("===============================================================================\n");
+        // printf("============================[ Search Statistics ]==============================\n");
+        // printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
+        // printf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
+        // printf("===============================================================================\n");
     }
 
     // Search:
@@ -809,7 +809,7 @@ lbool Solver::solve_()
     }
 
     if (verbosity >= 1)
-        printf("===============================================================================\n");
+        // printf("===============================================================================\n");
 
 
     if (status == l_True){
