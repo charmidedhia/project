@@ -16,10 +16,14 @@
 
 #include <stdlib.h>
 #include <ctime>
+#include <string.h>
+#include <fstream>
+#include <queue>
 
 int subset_size=50;  // size of subset
 int maxhs_time_limit =100; //time limit for each maxhs call
 int k=subset_size;
+int j=10; //step size if iterative
 ATPG::ATPG(char *benchname, bool incr, bool symm) {
 
     g_incremental = incr;
@@ -993,6 +997,115 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
     cout<<"\n\ntotal_maxsat_time: "<<total_maxsat_time<<endl<<endl;
 }
 
+
+void ATPG::getGreedyTestSet_itr(vector<vector<int> > &patterns, char *solver_name) {
+cout<<"maxhs_time_limit "<<maxhs_time_limit;
+    int iternum = 1;
+    
+    time_t t1,t2;
+    vector<Fault> allfaults;
+    list<Fault> curfaults;
+    list<Fault> subset; 
+    double total_maxsat_time=0;
+    getReducedFaults(allfaults);
+
+    
+    cout << "Number of testable faults: " << allfaults.size() << endl;
+    fflush(stdout);
+    
+    for (int i= 0 ; i < allfaults.size(); i++) {
+        curfaults.push_back(allfaults[i]);
+    }
+    
+    
+    
+    while (curfaults.size() > 0) {
+        cout<<"subset size: "<<k<<" step size: "<<j<<endl;
+
+        std::ofstream ofs;
+        ofs.open("cores.txt", std::ofstream::out | std::ofstream::trunc);
+        ofs.close();
+        subset.clear();
+        cout << "iteration " << iternum++ << ", remaning faults=" << curfaults.size()<< ", test patterns=" << patterns.size() << endl;
+        vector<int> patternvars;
+        CNF *cnf = new CNF(0);
+        set<int> softclauses;
+        
+        int numInputs = g_circuit->getNumInputLines();
+          
+              
+          for (int i = 0; i < numInputs; i++) { 
+            patternvars.push_back(cnf->newVar());     
+          }    
+          // testpatternvars.push_back(patternvars); 
+            
+          map<int, int> line_to_boolvar;
+
+          // Initialize the boolean vars for the input lines to be the outputs of the multiplexer
+            
+          for (int i = 0; i < numInputs; i++) {
+              line_to_boolvar[g_circuit->getInputLine(i)] = patternvars[i];
+          }
+        
+        list<Fault>::iterator it=curfaults.begin();
+        int count=0;
+        vector<int> model;
+        time_t t3;
+        time(&t3);
+        while(count<k && it!=curfaults.end()){
+            model.clear();
+            int i=0;
+            while(i<j && it!=curfaults.end()){
+                addFaultToCnf(*it, cnf, line_to_boolvar,softclauses,count==0);
+                it++;
+                count++;
+                i++;
+                //cout<<"in loop 2\n";
+            }
+
+              MaxSATSolver *maxsatsolver = new MaxSATSolver(cnf, solver_name);      
+
+              time(&t1);
+            
+              maxsatsolver->solve(model, softclauses,"cores.txt", maxhs_time_limit);
+              time(&t2);
+           
+              cout << "Solving time=" << difftime(t2,t1) << "s" << endl;
+              total_maxsat_time+=difftime(t2,t1);
+              //if(difftime(t2,t1)>maxhs_time_limit)break;
+              //if (difftime(t2,t3)>threshold)break;
+        }
+
+
+        vector<vector<int> > testpatternvars;
+        testpatternvars.push_back(patternvars);
+        modelToPatterns(testpatternvars, model, patterns);
+
+        vector<flt_it> tested_faults;
+
+        // find and remove tested faults
+        int cnt=0;
+        for (flt_it it=curfaults.begin(); it!=curfaults.end(); it++){
+        
+            if (isFaultTested(*it, patterns)){
+              cnt++;
+              tested_faults.push_back(it);
+            }
+        }
+        cout<<"Faults tested in this iteration: "<<cnt<<endl;
+
+        cout << "Tested faults: ";
+        for (vector<flt_it>::iterator it=tested_faults.begin(); it!=tested_faults.end(); it++){
+            curfaults.erase(*it);
+            cout << (*it)->line << ", ";
+        }
+        cout << endl;
+    
+      
+    }
+    cout<<"total_maxsat_time = "<<total_maxsat_time<<endl;
+}
+
 bool ATPG::checkTestSet(vector<vector<int> > patterns){
     list<Fault> allfaults;
     
@@ -1021,3 +1134,9 @@ bool ATPG::checkTestSet(vector<vector<int> > patterns){
     return true;
 }
 
+void ATPG::addFaultToCnf(Fault &fault, CNF *cnf, map<int, int> &line_to_boolvar, set<int> &softclauses, bool addGoodCircuit){//add the fault to cnf
+    int faulty_line_id = g_circuit->getLineID(fault.line);
+    set<int> cone;
+    addToCone(fault.line, cone, (g_circuit->getLine(faulty_line_id)).to_gates);
+    buildCNF(cone, fault, cnf, line_to_boolvar, softclauses, true, addGoodCircuit);
+}

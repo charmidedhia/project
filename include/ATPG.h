@@ -71,6 +71,7 @@ class ATPG {
     void buildMaxSatCnf(list<Fault> &faults, CNF *cnf, set<int> &softclauses, vector<int> &patternvars);
     void getAllFaults(vector<Fault> &allfaults);//gives full fault list
     void getReducedFaults(vector<Fault> &allfaults);//gives fault list after equivalent fault collapsing
+    void addFaultToCnf(Fault &fault, CNF *cnf, map<int, int> &line_to_boolvar, set<int> &softclauses, bool addGoodCircuit);//add the fault to cnf
 
 
 public:
@@ -87,6 +88,8 @@ public:
 
     /* Use a greedy strategy to generate a small set of test patterns. */
     void getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name);
+    void getGreedyTestSet_itr(vector<vector<int> > &patterns, char *solver_name);
+
     bool checkTestSet(vector<vector<int> > patterns);
 
 
