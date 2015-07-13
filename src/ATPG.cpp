@@ -17,9 +17,9 @@
 #include <stdlib.h>
 #include <ctime>
 
-int k=50;  // size of subset
+int subset_size=50;  // size of subset
 int maxhs_time_limit =100; //time limit for each maxhs call
-
+int k=subset_size;
 ATPG::ATPG(char *benchname, bool incr, bool symm) {
 
     g_incremental = incr;
@@ -963,6 +963,7 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
       time(&t2);
 
       cout << "Solving time=" << difftime(t2,t1) << "s" << endl;
+      total_maxsat_time+=difftime(t2,t1);
 
       vector<vector<int> > testpatternvars;
       testpatternvars.push_back(patternvars);
@@ -976,7 +977,11 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
 	          tested_faults.push_back(it);
 	       }
         }
-	
+        int count=tested_faults.size();
+	  cout<<"Faults tested in this iteration: "<<tested_faults.size()<<endl;
+      if (count==0 && k==10)maxhs_time_limit*=5;
+      if(count<3)k=10;
+      else if(count<subset_size)k=subset_size;
       cout << "Tested faults: ";
       for (vector<flt_it>::iterator it=tested_faults.begin(); it!=tested_faults.end(); it++){
 	   curfaults.erase(*it);
@@ -985,6 +990,7 @@ void ATPG::getGreedyTestSet(vector<vector<int> > &patterns, char *solver_name) {
       cout << endl;
       
     }
+    cout<<"\n\ntotal_maxsat_time: "<<total_maxsat_time<<endl<<endl;
 }
 
 bool ATPG::checkTestSet(vector<vector<int> > patterns){
